@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>apidrift</title>
+<style>
+  :root {
+    --bg: #F6F7F9;
+    --surface: #FFFFFF;
+    --sunk: #EDEFF3;
+    --line: #DCE0E8;
+    --line-soft: #E8EBF0;
+    --ink: #14171D;
+    --ink-2: #454B57;
+    --muted: #767D8C;
+    --accent: #2B62D9;
+    --ok: #17805A;
+    --ok-bg: #E4F5EC;
+    --crit: #B4281B;
+    --crit-bg: #FBE9E6;
+    --high: #8A5200;
+    --high-bg: #FBF0DD;
+    --info: #1F5FA8;
+    --info-bg: #E6EFFA;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0D1015;
+      --surface: #14181F;
+      --sunk: #0A0D12;
+      --line: #242A35;
+      --line-soft: #1C212A;
+      --ink: #E6E9EF;
+      --ink-2: #B9BFCC;
+      --muted: #7C8494;
+      --accent: #7BA0F5;
+      --ok: #45C48C;
+      --ok-bg: #10281F;
+      --crit: #FF7A6B;
+      --crit-bg: #2C1512;
+      --high: #E0A044;
+      --high-bg: #2A1F0D;
+      --info: #6FA8F0;
+      --info-bg: #111E30;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--sans); font-size: 14px; line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px 64px; }
+
+  header {
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .head-in {
+    max-width: 1120px; margin: 0 auto; padding: 14px 20px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .brand { font-family: var(--mono); font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .brand span { color: var(--muted); font-weight: 400; }
+  .head-meta { margin-left: auto; display: flex; align-items: center; gap: 18px; font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); display: inline-block; margin-right: 6px; }
+  .dot.stale { background: var(--muted); }
+
+  h2 {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--muted); margin: 32px 0 12px; font-family: var(--mono);
+  }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 24px; }
+  .tile { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 13px 15px; }
+  .tile .n { font-family: var(--mono); font-size: 25px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+  .tile .l { font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+  .tile.crit .n { color: var(--crit); }
+  .tile.high .n { color: var(--high); }
+  .tile.info .n { color: var(--info); }
+  .tile.ok   .n { color: var(--ok); }
+
+  .ep { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; margin-bottom: 10px; overflow: hidden; }
+  .ep-head { padding: 12px 15px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; border-bottom: 1px solid var(--line-soft); }
+  .meth {
+    font-family: var(--mono); font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em;
+    padding: 2px 6px; border-radius: 3px; background: var(--sunk); color: var(--ink-2);
+  }
+  .tmpl { font-family: var(--mono); font-size: 13.5px; font-weight: 500; }
+  .ep-meta { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+  .f { padding: 12px 15px; border-bottom: 1px solid var(--line-soft); border-left: 3px solid transparent; }
+  .f:last-child { border-bottom: none; }
+  .f.critical { border-left-color: var(--crit); }
+  .f.high { border-left-color: var(--high); }
+  .f.info { border-left-color: var(--info); }
+  .f-top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .sev {
+    font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.07em;
+    padding: 2px 6px; border-radius: 3px; text-transform: uppercase;
+  }
+  .sev.critical { background: var(--crit-bg); color: var(--crit); }
+  .sev.high { background: var(--high-bg); color: var(--high); }
+  .sev.info { background: var(--info-bg); color: var(--info); }
+  .kind { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+  .path { font-family: var(--mono); font-size: 13.5px; font-weight: 500; }
+  .rates { margin-left: auto; font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+  .r-from { color: var(--muted); }
+  .r-to { font-weight: 600; }
+  .ev { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-top: 5px; }
+
+  /* Baseline and current are drawn from the same left edge, one over the other,
+     so the pair reads as "was this wide, now it is this wide". Laying them out
+     as flex siblings made them share the track and squeeze each other. */
+  .bar { position: relative; height: 4px; background: var(--sunk); border-radius: 2px; margin-top: 8px; }
+  .bar i { position: absolute; left: 0; top: 0; height: 100%; border-radius: 2px; }
+  .bar .b1 { background: var(--muted); opacity: .35; }
+  .bar .b2 { background: currentColor; }
+
+  .empty { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 40px 24px; text-align: center; }
+  .empty .big { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .empty .sub { color: var(--muted); font-size: 13px; max-width: 46ch; margin: 0 auto; }
+  .empty.good .big { color: var(--ok); }
+
+  .cand { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 6px; padding: 12px 15px; margin-bottom: 8px; }
+  .cand .p { font-family: var(--mono); font-size: 13px; font-weight: 500; }
+  .cand .why { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+  .cand .ep-name { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+  .warn { background: var(--high-bg); border: 1px solid var(--high); color: var(--high); border-radius: 6px; padding: 11px 15px; margin-top: 20px; font-size: 13px; }
+
+  table.kv { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
+  table.kv td { padding: 6px 0; border-bottom: 1px solid var(--line-soft); }
+  table.kv td:last-child { text-align: right; font-weight: 600; }
+  table.kv tr:last-child td { border-bottom: none; }
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 13px 15px; }
+  .card h3 { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="head-in">
+    <div class="brand">apidrift<span> // drift detection</span></div>
+    <div class="head-meta">
+      <span id="window">&nbsp;</span>
+      <span><span class="dot" id="dot"></span><span id="live">connecting</span></span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="tiles" id="tiles"></div>
+  <div id="warnings"></div>
+
+  <h2>Findings</h2>
+  <div id="findings"></div>
+
+  <div id="semantic-wrap" style="display:none">
+    <h2>Flagged for semantic review</h2>
+    <div id="semantic"></div>
+  </div>
+
+  <h2>Pipeline</h2>
+  <div class="cols" id="pipeline"></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pct = v => (v * 100).toFixed(1) + "%";
+const pval = v => v === 0 ? "0" : v < 1e-4 ? v.toExponential(1) : v.toFixed(4);
+const num = n => (n ?? 0).toLocaleString();
+
+async function get(path) {
+  const r = await fetch(path, { cache: "no-store" });
+  if (r.status === 503) return null;          // warm-up, not an error
+  if (!r.ok) throw new Error(path + " " + r.status);
+  return r.json();
+}
+
+function renderTiles(rep, stats) {
+  const s = rep?.summary;
+  const sev = s?.by_severity || {};
+  const t = [];
+  if (!s || s.findings === 0) {
+    t.push(`<div class="tile ok"><div class="n">0</div><div class="l">findings</div></div>`);
+  } else {
+    if (sev.critical) t.push(`<div class="tile crit"><div class="n">${sev.critical}</div><div class="l">critical</div></div>`);
+    if (sev.high)     t.push(`<div class="tile high"><div class="n">${sev.high}</div><div class="l">high</div></div>`);
+    if (sev.info)     t.push(`<div class="tile info"><div class="n">${sev.info}</div><div class="l">info</div></div>`);
+  }
+  t.push(`<div class="tile"><div class="n">${s?.endpoints_compared ?? 0}</div><div class="l">endpoints compared</div></div>`);
+  t.push(`<div class="tile"><div class="n">${num(stats?.analyzer?.stored)}</div><div class="l">responses analysed</div></div>`);
+  const dropped = stats?.proxy?.dropped ?? 0;
+  t.push(`<div class="tile ${dropped ? "high" : ""}"><div class="n">${num(dropped)}</div><div class="l">samples dropped</div></div>`);
+  $("tiles").innerHTML = t.join("");
+}
+
+function renderFindings(rep) {
+  const el = $("findings");
+  if (!rep) {
+    el.innerHTML = `<div class="empty"><div class="big">Warming up</div>
+      <div class="sub">No window has closed yet. The first comparison runs once a full window of traffic has been collected.</div></div>`;
+    return;
+  }
+  if (!rep.groups || rep.groups.length === 0) {
+    const n = rep.summary?.endpoints_compared ?? 0;
+    el.innerHTML = `<div class="empty good"><div class="big">No drift detected</div>
+      <div class="sub">${n} endpoint${n === 1 ? "" : "s"} compared between the two windows. Nothing changed shape by more than the configured effect threshold.</div></div>`;
+    return;
+  }
+  el.innerHTML = rep.groups.map(g => {
+    const k = g.endpoint;
+    const rows = (g.findings || []).map(f => {
+      const sev = esc(f.severity);
+      // A zero rate still gets a hairline, so "0%" is visibly a measured zero
+      // rather than a bar that failed to render.
+      const w1 = Math.max(1.5, f.baseline_rate * 100);
+      const w2 = Math.max(1.5, f.current_rate * 100);
+      return `<div class="f ${sev}">
+        <div class="f-top">
+          <span class="sev ${sev}">${sev}</span>
+          <span class="path">${esc(f.path)}</span>
+          <span class="kind">${esc(f.kind)}</span>
+          <span class="rates"><span class="r-from">${pct(f.baseline_rate)}</span> &rarr; <span class="r-to">${pct(f.current_rate)}</span>
+            <span class="r-from">&nbsp; p=${pval(f.p_value)}</span></span>
+        </div>
+        <div class="ev">${esc(f.evidence)}</div>
+        <div class="bar" style="color:var(--${sev === "critical" ? "crit" : sev})">
+          <i class="b1" style="width:${w1}%"></i><i class="b2" style="width:${w2}%"></i></div>
+      </div>`;
+    }).join("");
+    return `<div class="ep">
+      <div class="ep-head">
+        <span class="meth">${esc(k.method)}</span>
+        <span class="tmpl">${esc(k.template)}</span>
+        <span class="kind">${k.status_class}xx</span>
+        <span class="ep-meta">${num(g.baseline_samples)} &rarr; ${num(g.current_samples)} samples</span>
+      </div>${rows}</div>`;
+  }).join("");
+}
+
+function renderSemantic(c) {
+  const wrap = $("semantic-wrap");
+  if (!c || c.length === 0) { wrap.style.display = "none"; return; }
+  wrap.style.display = "";
+  $("semantic").innerHTML = c.map(r => `<div class="cand">
+      <div class="ep-name">${esc(r.endpoint.method)} ${esc(r.endpoint.template)} ${r.endpoint.status_class}xx</div>
+      <div class="p">${esc(r.path)}</div>
+      <div class="why">${esc(r.shift.reason)}</div>
+    </div>`).join("");
+}
+
+function renderPipeline(s) {
+  if (!s) return;
+  const card = (title, rows) => `<div class="card"><h3>${title}</h3><table class="kv">` +
+    rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("") + `</table></div>`;
+  $("pipeline").innerHTML = [
+    card("Proxy", [
+      ["requests", num(s.proxy?.requests)],
+      ["sampled", num(s.proxy?.sampled)],
+      ["dropped", num(s.proxy?.dropped)],
+      ["upstream errors", num(s.proxy?.upstream_errors)],
+    ]),
+    card("Analysis", [
+      ["stored", num(s.analyzer?.stored)],
+      ["unresolved paths", num(s.analyzer?.unresolved)],
+      ["parse errors", num(s.analyzer?.parse_errors)],
+      ["contained panics", num(s.analyzer?.panics)],
+    ]),
+    card("Store", [
+      ["endpoints", num(s.store?.endpoints)],
+      ["live buckets", num(s.store?.live_buckets)],
+      ["evictions", num(s.store?.evictions)],
+      ["evaluations", num(s.analyzer?.evaluations)],
+    ]),
+  ].join("");
+}
+
+function renderWindow(rep) {
+  if (!rep) { $("window").textContent = ""; return; }
+  const f = t => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  $("window").textContent = `baseline ${f(rep.baseline.from)}-${f(rep.baseline.to)}  ·  current ${f(rep.current.from)}-${f(rep.current.to)}`;
+}
+
+function renderWarnings(rep) {
+  const w = rep?.warnings || [];
+  $("warnings").innerHTML = w.map(x => `<div class="warn">${esc(x)}</div>`).join("");
+}
+
+async function tick() {
+  try {
+    const [rep, stats, cand] = await Promise.all([
+      get("/findings"), get("/stats"), get("/candidates").catch(() => []),
+    ]);
+    renderTiles(rep, stats);
+    renderWindow(rep);
+    renderWarnings(rep);
+    renderFindings(rep);
+    renderSemantic(cand);
+    renderPipeline(stats);
+    $("dot").className = "dot";
+    $("live").textContent = "live";
+  } catch (e) {
+    $("dot").className = "dot stale";
+    $("live").textContent = "disconnected";
+  }
+}
+tick();
+setInterval(tick, 5000);
+</script>
+</body>
+</html>
