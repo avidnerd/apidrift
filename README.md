@@ -1,10 +1,6 @@
 # apidrift
 
-[![ci](https://github.com/avidnerd/apidrift/actions/workflows/ci.yml/badge.svg)](https://github.com/avidnerd/apidrift/actions/workflows/ci.yml)
-[![go](https://img.shields.io/badge/go-1.24-00ADD8)](https://go.dev)
-[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-
-Ongoing personal project, Fall 2026. Go, ~7k lines.
+Ongoing personal project, Fall 2026. 
 
 **Goal:** build a basic version of YC's [Self-Maintaining APIs](https://www.ycombinator.com/rfs)
 request for startups, which asks for an agent that "should scan customer
@@ -118,6 +114,3 @@ make build
 ./bin/apidrift demo                                      # runs the whole pipeline, no setup
 ./bin/apidrift watch --spec <openapi-url> --repo . --pr  # the spec path
 ```
-
-`DECISIONS.md` records the design choices as *chose / over / because / revisit
-if*, including two places where I had to correct numbers I had already published.
