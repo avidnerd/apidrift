@@ -1,0 +1,42 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # The full suite. This job is the one that must stay green.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          check-latest: true
+      - name: gofmt
+        run: make fmt
+      - name: go vet
+        run: make vet
+      - name: go test -race
+        run: make test
+      - name: build
+        run: make build
+
+  # The contract tests for schema.Merge, detect.Detect and eval.Score, run on
+  # their own. Those three carry the system's judgement, so a regression in any
+  # of them is worth seeing as its own signal rather than buried in the main job.
+  specifications:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          check-latest: true
+      - name: go test (Merge, Detect, Score)
+        run: make test-contracts

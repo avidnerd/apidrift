@@ -1,0 +1,16 @@
+# Build output
+/bin/
+/dist/
+
+# Test and profiling artifacts
+*.test
+*.out
+coverage.*
+
+# Eval harness output
+/eval-out/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
