@@ -1,0 +1,90 @@
+# A miniature billing API, version 1. Its companion billing-v2.yaml differs from
+# it in one way per detect.ChangeKind, so the differ and the scorer can be tested
+# against a changelist that is known exactly.
+openapi: 3.0.3
+info:
+  title: Billing API
+  version: "1.0"
+paths:
+  /v1/customers/{customer}:
+    get:
+      responses:
+        "200":
+          description: the customer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        "404":
+          description: no such customer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/charges:
+    get:
+      responses:
+        "200":
+          description: a page of charges
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [object, data]
+                properties:
+                  object:
+                    type: string
+                  has_more:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Charge'
+components:
+  schemas:
+    Customer:
+      type: object
+      required: [id, object, email, legacy_id, balance]
+      properties:
+        id:
+          type: string
+        object:
+          type: string
+          enum: [customer]
+        email:
+          type: string
+        legacy_id:
+          type: string
+        balance:
+          type: integer
+        address:
+          type: object
+          required: [line1, city]
+          properties:
+            line1:
+              type: string
+            city:
+              type: string
+    Charge:
+      type: object
+      required: [id, amount, status]
+      properties:
+        id:
+          type: string
+        amount:
+          type: integer
+        status:
+          type: string
+          enum: [failed, pending, succeeded]
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
