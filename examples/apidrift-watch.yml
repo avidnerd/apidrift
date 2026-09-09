@@ -1,0 +1,55 @@
+# Drop this in .github/workflows/ of a repo that consumes a third-party API.
+#
+# It checks the provider's spec on a schedule and opens a pull request when
+# something changes in a way that breaks your code. There is nothing to deploy
+# and nothing to run: no proxy, no agent, no traffic routed anywhere.
+#
+# Two things to set up:
+#   1. Settings -> Secrets -> Actions: add OPENROUTER_API_KEY (or ANTHROPIC_API_KEY)
+#   2. Settings -> Actions -> General: allow workflows to create pull requests
+name: apidrift
+
+on:
+  schedule:
+    - cron: "0 8 * * 1"   # Monday mornings
+  workflow_dispatch:       # and on demand
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Install apidrift
+        run: go install github.com/avidnerd/apidrift/cmd/apidrift@latest
+
+      - name: Check the provider's spec
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "apidrift"
+          git config user.email "apidrift@users.noreply.github.com"
+
+          apidrift watch \
+            --spec https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json \
+            --repo . \
+            --pr
+
+      # The first run has nothing to compare against, so it records the spec as
+      # a baseline. Commit that, or every run will look like a first run.
+      - name: Commit the baseline if this was the first run
+        run: |
+          if [ -n "$(git status --porcelain .apidrift)" ]; then
+            git add .apidrift
+            git commit -m "apidrift: record spec baseline"
+            git push
+          fi
